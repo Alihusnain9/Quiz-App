@@ -1,44 +1,43 @@
-import { useState, useEffect, useRef } from "react";
-import "./App.css";
+import React, { useEffect, useRef, useState } from "react";
 import FlashCardList from "./components/flashCardList";
 import axios from "axios";
+import "./App.css";
 
 export default function App() {
-  const [flashcard, setFlashCard] = useState([]);
+  const [flashcard, setFlashcard] = useState([]);
   const [categories, setCategories] = useState([]);
-
-  // useEffect(() => {
-  // axios.get("https://opentdb.com/api.php?amount=10").then((res) => {
-  //   setFlashCard(
-  //     res.data.results.map((questionItem, index) => {
-  //       const answer = questionItem.correct_answer;
-  //       const option = [...questionItem.incorrect_answers, answer];
-  //       return {
-  //         id: index - Date.now(),
-  //         question: decode(questionItem.question),
-  //         answer: answer,
-  //         options: option.sort(() => Math.random() - 0.5),
-  //       };
-  //     })
-  //   );
-  // });
-  // }, []);
-
-  useEffect(() => {
-    axios.get("https://opentdb.com/api_category.php").then((res) => {
-      console.log(res.data.trivia_categories);
-      setCategories(res.data.trivia_categories);
-    });
-  }, []);
 
   const categoryEl = useRef();
   const amountEl = useRef();
 
-  function decode(str) {
-    let textarea = document.createElement("textarea");
+  useEffect(() => {
+    axios.get("https://opentdb.com/api.php?amount=10").then((res) => {
+      return setFlashcard(
+        res.data.results.map((a, b) => {
+          const answer = a.correct_answer;
+          const option = [...a.incorrect_answers.map(x=>decodestring(x)), answer];
+          return {
+            id: crypto.randomUUID(),
+            question: decodestring(a.question),
+            answer: decodestring(answer),
+            options: option.sort(() => Math.random() - 0.5),
+          };
+        })
+      );
+    });
+  }, []);
+
+  function decodestring(str) {
+    const textarea = document.createElement("textarea");
     textarea.innerHTML = str;
     return textarea.value;
   }
+
+  useEffect(() => {
+    axios.get("https://opentdb.com/api_category.php").then((res) => {
+      setCategories(res.data.trivia_categories);
+    });
+  });
 
   function submitMe(e) {
     e.preventDefault();
@@ -50,13 +49,16 @@ export default function App() {
         },
       })
       .then((res) => {
-        setFlashCard(
-          res.data.results.map((questionItem, index) => {
-            const answer = questionItem.correct_answer;
-            const option = [...questionItem.incorrect_answers, answer];
+        return setFlashcard(
+          res.data.results.map((a, b) => {
+            const answer = a.correct_answer;
+            const option = [
+              ...a.incorrect_answers.map((x) => decodestring(x)),
+              decodestring(answer),
+            ];
             return {
-              id: index - Date.now(),
-              question: decode(questionItem.question),
+              id: crypto.randomUUID(),
+              question: decodestring(a.question),
               answer: answer,
               options: option.sort(() => Math.random() - 0.5),
             };
@@ -64,40 +66,42 @@ export default function App() {
         );
       });
   }
+
   return (
     <>
-      <form onSubmit={submitMe} className="header">
-        <div className="form-group">
-          <label htmlFor="category">Category</label>
-          <select id="category" ref={categoryEl}>
-            {categories &&
-              categories.map((category) => {
-                return (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                );
-              })}
-          </select>
-        </div>
-        <br />
-
-        <div className="row">
+      <div className="header">
+        <form onSubmit={submitMe} className="form">
           <div className="form-group">
-            <label htmlFor="number">Number Of Questions</label>
+            <label htmlFor="category">Category</label>
+            <select id="category" ref={categoryEl}>
+              {categories &&
+                categories.map((category) => {
+                  return (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  );
+                })}
+            </select>
+          </div>
+          <div className="form-group form-group2">
+            <label htmlFor="number">No. Of Questions</label>
             <input
+              defaultValue={10}
               type="number"
               id="number"
-              placeholder="Type a number..."
+              placeholder="Type Any Number..."
               ref={amountEl}
+              min={1}
             />
           </div>
-          <div className="">
-            <button className="btn">Generate</button>
-          </div>
-        </div>
-      </form>
-      <div className="container">
+
+          <button type="submit" className="btn">
+            Generate
+          </button>
+        </form>
+      </div>
+      <div>
         <FlashCardList flashcard={flashcard} />
       </div>
     </>
